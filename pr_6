@@ -1,0 +1,52 @@
+class RecursiveDescentParser:
+    def _init_(self, input_string):
+        self.input = input_string.replace(" ", "")  # Remove spaces
+        self.index = 0
+
+    def S(self):
+        if self.index < len(self.input) and self.input[self.index] == '(':
+            self.index += 1
+            if self.L():
+                if self.index < len(self.input) and self.input[self.index] == ')':
+                    self.index += 1
+                    return True
+            return False
+        elif self.index < len(self.input) and self.input[self.index] == 'a':
+            self.index += 1
+            return True
+        return False
+
+    def L(self):
+        if self.S():
+            return self.L_prime()
+        return False
+
+    def L_prime(self):
+        if self.index < len(self.input) and self.input[self.index] == ',':
+            self.index += 1
+            if self.S():
+                return self.L_prime()
+            return False
+        return True  # ε (epsilon) case
+
+    def parse(self):
+        return self.S() and self.index == len(self.input)
+
+
+# Function to validate string
+def validate_string(input_string):
+    parser = RecursiveDescentParser(input_string)
+    if parser.parse():
+        print("Valid string")
+    else:
+        print("Invalid string")
+
+
+# Test cases
+validate_string("(a,a)")  # Valid
+validate_string("(a,(a,a))")  # Valid
+validate_string("a")  # Valid
+validate_string("(a,a,a)")  # Valid
+validate_string("(a,)")  # Invalid
+validate_string("(,a)")  # Invalid
+validate_string("(a,(a,))")  # Invalid
