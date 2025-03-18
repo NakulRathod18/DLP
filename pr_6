@@ -1,52 +1,79 @@
-class RecursiveDescentParser:
-    def _init_(self, input_string):
-        self.input = input_string.replace(" ", "")  # Remove spaces
-        self.index = 0
+%{
+#include <stdio.h>
+#include <string.h>
 
-    def S(self):
-        if self.index < len(self.input) and self.input[self.index] == '(':
-            self.index += 1
-            if self.L():
-                if self.index < len(self.input) and self.input[self.index] == ')':
-                    self.index += 1
-                    return True
-            return False
-        elif self.index < len(self.input) and self.input[self.index] == 'a':
-            self.index += 1
-            return True
-        return False
+char user_input[100];  // Renamed 'input' to 'user_input'
+int pos = 0;  // Renamed 'index' to 'pos' (since 'index' is also a built-in function)
 
-    def L(self):
-        if self.S():
-            return self.L_prime()
-        return False
+int S();
+int L();
+int L_prime();
 
-    def L_prime(self):
-        if self.index < len(self.input) and self.input[self.index] == ',':
-            self.index += 1
-            if self.S():
-                return self.L_prime()
-            return False
-        return True  # ε (epsilon) case
+void yyerror() {
+    printf("Invalid string\n");
+}
 
-    def parse(self):
-        return self.S() and self.index == len(self.input)
+int yywrap(void) { 
+    return 1; 
+}
 
+%}
 
-# Function to validate string
-def validate_string(input_string):
-    parser = RecursiveDescentParser(input_string)
-    if parser.parse():
-        print("Valid string")
-    else:
-        print("Invalid string")
+%%
 
+.|\n { return 0; }  // Match everything
 
-# Test cases
-validate_string("(a,a)")  # Valid
-validate_string("(a,(a,a))")  # Valid
-validate_string("a")  # Valid
-validate_string("(a,a,a)")  # Valid
-validate_string("(a,)")  # Invalid
-validate_string("(,a)")  # Invalid
-validate_string("(a,(a,))")  # Invalid
+%%
+
+// Function to check 'S' rule
+int S() {
+    if (user_input[pos] == '(') {
+        pos++;
+        if (L()) {
+            if (user_input[pos] == ')') {
+                pos++;
+                return 1;
+            }
+        }
+        return 0;
+    }
+    else if (user_input[pos] == 'a') {
+        pos++;
+        return 1;
+    }
+    return 0;
+}
+
+// Function to check 'L' rule
+int L() {
+    if (S()) {
+        return L_prime();
+    }
+    return 0;
+}
+
+// Function to check 'L_prime' rule
+int L_prime() {
+    if (user_input[pos] == ',') {
+        pos++;
+        if (S()) {
+            return L_prime();
+        }
+        return 0;
+    }
+    return 1; // Epsilon case (empty)
+}
+
+int main() {
+    printf("Enter a string: ");
+    scanf("%s", user_input);
+
+    if (S() && user_input[pos] == '\0') {
+        printf("Valid string\n");
+    } else {
+        yyerror();
+    }
+
+    return 0;
+}
+
