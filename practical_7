@@ -1,0 +1,117 @@
+#include <iostream>
+#include <map>
+#include <set>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+map<char, vector<string>> grammar = {
+    {'S', {"ABC", "D"}},
+    {'A', {"a", "ε"}},
+    {'B', {"b", "ε"}},
+    {'C', {"(S)", "c"}},
+    {'D', {"AC"}}
+};
+
+map<char, set<char>> first_sets;
+map<char, set<char>> follow_sets;
+
+set<char> compute_first(char symbol);
+set<char> compute_follow(char symbol);
+
+set<char> compute_first(char symbol) {
+    if (first_sets.find(symbol) != first_sets.end() && !first_sets[symbol].empty()) {
+        return first_sets[symbol];
+    }
+    
+    set<char> first;
+    if (!grammar.count(symbol)) {
+        return {symbol}; // Terminal symbol
+    }
+    
+    for (const string& production : grammar[symbol]) {
+        for (char sub_symbol : production) {
+            set<char> sub_first = compute_first(sub_symbol);
+            first.insert(sub_first.begin(), sub_first.end());
+            first.erase('ε');
+            if (sub_first.find('ε') == sub_first.end()) {
+                break;
+            }
+        }
+        first.insert('ε');
+    }
+    
+    first_sets[symbol] = first;
+    return first;
+}
+
+set<char> compute_follow(char symbol) {
+    if (follow_sets.find(symbol) != follow_sets.end() && !follow_sets[symbol].empty()) {
+        return follow_sets[symbol];
+    }
+    
+    set<char> follow;
+    if (symbol == 'S') {
+        follow.insert('$'); // Start symbol gets EOF
+    }
+    
+    for (auto& rule : grammar) {
+        char lhs = rule.first;
+        for (const string& production : rule.second) {
+            for (size_t i = 0; i < production.size(); ++i) {
+                if (production[i] == symbol) {
+                    string rest = production.substr(i + 1);
+                    if (!rest.empty()) {
+                        set<char> rest_first;
+                        for (char next_symbol : rest) {
+                            set<char> next_first = compute_first(next_symbol);
+                            rest_first.insert(next_first.begin(), next_first.end());
+                            rest_first.erase('ε');
+                            if (next_first.find('ε') == next_first.end()) {
+                                break;
+                            }
+                        }
+                        follow.insert(rest_first.begin(), rest_first.end());
+                    }
+                    if (rest.empty() || rest.find('ε') != string::npos) {
+                        set<char> lhs_follow = compute_follow(lhs);
+                        follow.insert(lhs_follow.begin(), lhs_follow.end());
+                    }
+                }
+            }
+        }
+    }
+    
+    follow_sets[symbol] = follow;
+    return follow;
+}
+
+void print_sets() {
+    for (auto& rule : grammar) {
+        cout << "First(" << rule.first << ") = { ";
+        for (char ch : first_sets[rule.first]) {
+            cout << ch << " ";
+        }
+        cout << "}\n";
+    }
+    cout << endl;
+    for (auto& rule : grammar) {
+        cout << "Follow(" << rule.first << ") = { ";
+        for (char ch : follow_sets[rule.first]) {
+            cout << ch << " ";
+        }
+        cout << "}\n";
+    }
+}
+
+int main() {
+    for (auto& rule : grammar) {
+        compute_first(rule.first);
+    }
+    for (auto& rule : grammar) {
+        compute_follow(rule.first);
+    }
+    print_sets();
+    return 0;
+}
